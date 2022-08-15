@@ -9,6 +9,7 @@ import io.javalin.apibuilder.ApiBuilder.get
 import io.javalin.apibuilder.ApiBuilder.path
 import io.javalin.core.validation.JavalinValidation
 import io.pleo.antaeus.core.exceptions.EntityNotFoundException
+import io.pleo.antaeus.core.services.BillingService
 import io.pleo.antaeus.core.services.CustomerService
 import io.pleo.antaeus.core.services.InvoiceService
 import io.pleo.antaeus.models.InvoiceStatus
@@ -19,12 +20,13 @@ private val thisFile: () -> Unit = {}
 
 class AntaeusRest(
     private val invoiceService: InvoiceService,
-    private val customerService: CustomerService
+    private val customerService: CustomerService,
+    private val billingService: BillingService
 ) : Runnable {
 
     override fun run() {
         app.start(7000)
-        JavalinValidation.register(InvoiceStatus::class.java) { InvoiceStatus.valueOf(it) }
+        JavalinValidation.register(InvoiceStatus::class.java) { InvoiceStatus.valueOf(it.toUpperCase()) }
     }
 
     // Set up Javalin rest app
@@ -60,6 +62,7 @@ class AntaeusRest(
                 path("v1") {
                     path("invoices") {
                         // URL: /rest/v1/invoices
+
                         get {
                             it.json(invoiceService.fetchAll())
                         }
@@ -68,11 +71,24 @@ class AntaeusRest(
                         get(":id") {
                             it.json(invoiceService.fetch(it.pathParam("id").toInt()))
                         }
+
                         path("status") {
                             // URL: /rest/v1/invoices/status/{status}
                             get(":status") {
-                                val status = it.pathParam("status",InvoiceStatus::class.java).get()
+                                val status = it.pathParam("status", InvoiceStatus::class.java).get()
                                 it.json(invoiceService.fetchByStatus(status))
+                            }
+                            path(":status/charge") {
+                                // URL: /rest/v1/invoices/status/pending/charge
+                                get {
+                                    val status = it.pathParam("status", InvoiceStatus::class.java).get()
+                                    if (status == InvoiceStatus.PENDING) {
+                                        billingService.billingProcess()
+                                        it.json("The billing process of pending invoices has started")
+                                    } else {
+                                        it.json("Cannot charge paid invoices")
+                                    }
+                                }
                             }
                         }
                     }
