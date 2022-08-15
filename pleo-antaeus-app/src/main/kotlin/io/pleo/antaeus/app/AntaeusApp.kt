@@ -16,6 +16,7 @@ import io.pleo.antaeus.data.AntaeusDal
 import io.pleo.antaeus.data.CustomerTable
 import io.pleo.antaeus.data.InvoiceTable
 import io.pleo.antaeus.rest.AntaeusRest
+import mu.KotlinLogging
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.StdOutSqlLogger
@@ -28,11 +29,15 @@ import java.sql.Connection
 import java.util.*
 
 fun main() {
+    val logger = KotlinLogging.logger {}
+    logger.info { "Antaeus Application has started!!" }
+
     // The tables to create in the database.
     val tables = arrayOf(InvoiceTable, CustomerTable)
 
     val dbFile: File = File.createTempFile("antaeus-db", ".sqlite")
 
+    logger.info { "Database initialisation" }
     // Connect to the database and create the needed tables. Drop any existing data.
     val db = Database
         .connect(
@@ -90,25 +95,28 @@ fun main() {
       2) Else adds a delay to run again when it is the first day of the month
      */
     var delay: Long = 0
-    val maxRetries = 3
+    val MAX_RETRY = 3
     var executionsCounter = 0
 
     while (true) {
         if (isFirstDayOfMonth) {
 
-            if (executionsCounter < maxRetries) { // Run the Billing process 3 times before next execution
+            if (executionsCounter < MAX_RETRY) { // Run the Billing process 3 times before next execution
                 billingService.billingProcess()
                 delay = 0
                 executionsCounter++
             } else {
-                delay = billingSchedulerService.milliSecondsUntilFirstDayOfMonth(calendar) // Sleep until 1 day of the next month
+                delay =
+                    billingSchedulerService.milliSecondsUntilFirstDayOfMonth(calendar) // Sleep until 1 day of the next month
                 executionsCounter = 0
             }
         } else {
-            delay = billingSchedulerService.milliSecondsUntilFirstDayOfMonth(calendar)  // Sleep until 1 day of the next month
+            delay =
+                billingSchedulerService.milliSecondsUntilFirstDayOfMonth(calendar)  // Sleep until 1 day of the next month
             executionsCounter = 0
         }
 
+        logger.info { "The billing process will start again in:$delay milliseconds" }
         Thread.sleep(delay)
     }
 }
