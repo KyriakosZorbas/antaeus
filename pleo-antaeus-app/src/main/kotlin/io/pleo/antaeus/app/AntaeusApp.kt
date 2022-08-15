@@ -62,7 +62,7 @@ fun main() {
     val customerService = CustomerService(dal = dal)
 
     // Billing service
-    val billingService = BillingService(paymentProvider,dal)
+    val billingService = BillingService(paymentProvider,invoiceService = invoiceService)
 
     // Create REST web service
     AntaeusRest(

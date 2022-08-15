@@ -21,13 +21,15 @@ class InvoiceServiceTest {
         every { fetchInvoice(404) } returns null
         every { fetchInvoiceByStatus(InvoiceStatus.PENDING) } returns pendingInvoices
         every { fetchInvoiceByStatus(InvoiceStatus.PAID) } returns paidInvoices
+        every { updateInvoiceStatus(1, InvoiceStatus.PAID) } returns 0
     }
     private val invoiceService = InvoiceService(dal = dal)
 
     @Test
-    fun `will throw if invoice is not found`() {
+    fun `will throw if customer is not found`() {
         assertThrows<InvoiceNotFoundException> {
             invoiceService.fetch(404)
+
         }
     }
 
@@ -41,4 +43,10 @@ class InvoiceServiceTest {
         Assertions.assertEquals(paidInvoices, invoiceService.fetchByStatus(InvoiceStatus.PAID))
     }
 
+    @Test
+    fun `will throw if invoice is not found`() {
+        assertThrows<InvoiceNotFoundException> {
+            invoiceService.updateInvoiceStatus(1, InvoiceStatus.PAID)
+        }
+    }
 }
